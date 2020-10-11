@@ -1,0 +1,28 @@
+<launch>
+
+	<arg name="image_topic" default="/usb_cam/image_raw"/>
+	<arg name="lidar_topic" default="lidar"/>
+	<arg name="model_def" default="$(find complex_yolo_ros)/config/complex_yolov3.cfg"/>
+	<arg name="weights_path" default="$(find complex_yolo_ros)/checkpoints/yolov3_ckpt_epoch-298.pth"/>
+	<arg name="class_path" default="$(find complex_yolo_ros)/data/classes.names"/>
+	<arg name="conf_thres" default="0.8"/>
+	<arg name="nms_thres" default="0.4"/>
+	<arg name="save_video" default="False"/>
+	<arg name="split" default="$(find complex_yolo_ros)/data/KITTI/ImageSets/KODAS_1"/>
+	<arg name="folder" default="$(find complex_yolo_ros)/data/KITTI/object/KODAS_1"/>
+
+	<node pkg="complex_yolo_ros" type="complex.py" name="complex_yolo_node" output="screen">
+		<param name="image_topic" value="$(arg image_topic)" />
+		<param name="lidar_topic" value="$(arg lidar_topic)" />
+		<param name="model_def" value="$(arg model_def)" />
+		<param name="weights_path" value="$(arg weights_path)" />
+		<param name="class_path" value="$(arg model_def)" />
+		<param name="nms_thres" value="$(arg nms_thres)" />
+		<param name="conf_thres" value="$(arg conf_thres)" />
+		<param name="split" value="$(arg split)" />
+		<param name="folder" value="$(arg folder)" />
+	</node>
+
+</launch>
+
+
