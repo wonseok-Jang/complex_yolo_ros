@@ -1,6 +1,6 @@
 # Complex YOLO ROS
 
-### More details
+### More details (requirements)
 * https://github.com/ghimiredhikura/Complex-YOLOv3
 
 ### Environment
