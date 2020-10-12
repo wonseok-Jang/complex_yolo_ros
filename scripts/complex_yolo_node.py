@@ -66,8 +66,8 @@ class ComplexYOLO:
         self.model.eval()
 
         # Load dataset
-#		self.dataset = KittiYOLO2WayDataset(cnf.root_dir, split=self.split, folder=self.folder)
-#		self.data_loader = torch_data.DataLoader(self.dataset, 1, shuffle=False)
+#       self.dataset = KittiYOLO2WayDataset(cnf.root_dir, split=self.split, folder=self.folder)
+#       self.data_loader = torch_data.DataLoader(self.dataset, 1, shuffle=False)
 
     def lidarCb(self, data):
         np_lidar = self.pointcloud2_to_array(data)
@@ -79,24 +79,24 @@ class ComplexYOLO:
         self.front_bevs = bev_utils.makeBVFeature(front_lidar, cnf.DISCRETIZATION, cnf.boundary)
         self.front_bevs = self.front_bevs.reshape(1,3,608,608)
 
-#		self.front_bevs = torch.from_numpy(self.front_bevs).float()
-#		self.front_bevs = self.front_bevs[None]
+#       self.front_bevs = torch.from_numpy(self.front_bevs).float()
+#       self.front_bevs = self.front_bevs[None]
 
-#		print(self.front_bevs)
-#		imgs = Variable(self.front_bevs.type(self.Tensor))
-#		print(imgs)
+#       print(self.front_bevs)
+#       imgs = Variable(self.front_bevs.type(self.Tensor))
+#       print(imgs)
 
         back_lidar = bev_utils.removePoints(np_lidar, cnf.boundary_back)
         self.back_bevs = bev_utils.makeBVFeature(back_lidar, cnf.DISCRETIZATION, cnf.boundary_back)
         self.back_bevs = self.back_bevs.reshape(1,3,608,608)
-#		bev_maps = np.flip(self.back_bevs, [2,3])
-#		bev_maps = bev_maps.reshape(3,608,608)
+#       bev_maps = np.flip(self.back_bevs, [2,3])
+#       bev_maps = bev_maps.reshape(3,608,608)
 
-#		self.back_bevs = torch.from_numpy(self.back_bevs).float()
+#       self.back_bevs = torch.from_numpy(self.back_bevs).float()
 #
-#		print(self.back_bevs)
-#		imgs = Variable(self.back_bevs.type(self.Tensor))
-#		print(imgs)
+#       print(self.back_bevs)
+#       imgs = Variable(self.back_bevs.type(self.Tensor))
+#       print(imgs)
 		
         # Subscribe Lidar data
         self.lidar_status = True
@@ -182,9 +182,9 @@ class ComplexYOLO:
         start_time = time.time()
 		
         while not rospy.is_shutdown():
-#			img2d = cv2.imread(img_path)
+#           img2d = cv2.imread(img_path)
 
-#			self.input_img = self.imagePreProcessing(img2d)
+#           self.input_img = self.imagePreProcessing(img2d)
 
             # Lock 
             self.lock.acquire()
@@ -212,12 +212,12 @@ class ComplexYOLO:
             vis_raw = np.concatenate((front_bev_raw, back_bev_raw), axis=1)
             vis_eval = np.concatenate((front_bev_result_eval, back_bev_result_eval), axis=1)
 
-#			calib = kitti_utils.Calibration(img_paths[0].replace(".jpg", ".txt").replace("image_2", "calib"))
-#			objects_pred = predictions_to_kitti_format(front_detections, calib, img2d.shape, self.img_size)  
+#           calib = kitti_utils.Calibration(img_paths[0].replace(".jpg", ".txt").replace("image_2", "calib"))
+#           objects_pred = predictions_to_kitti_format(front_detections, calib, img2d.shape, self.img_size)  
 #img2d = mview.show_image_with_boxes(img2d, objects_pred, calib, False)
 
-#			img2d = cv2.resize(img2d, (self.img_size*2, 375))
-#			vis = np.concatenate((img2d, vis), axis=0)
+#           img2d = cv2.resize(img2d, (self.img_size*2, 375))
+#           vis = np.concatenate((img2d, vis), axis=0)
 
             cv2.imshow('BEV_DETECTION_RESULT', vis)
             if self.save_video:
