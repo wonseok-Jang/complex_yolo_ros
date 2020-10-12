@@ -24,9 +24,9 @@ from test_detection import predictions_to_kitti_format
 
 
 class ComplexYOLO:
-	def __init__(self):
-		print("Init()")
-		rospy.init_node('complex_yolo_node', anonymous = True)
+    def __init__(self):
+    	print("Init()")
+	    rospy.init_node('complex_yolo_node', anonymous = True)
 
         # Init lock variable
 		self.lock = threading.Lock()
@@ -53,26 +53,26 @@ class ComplexYOLO:
 		self.classes = utils.load_classes(self.class_path)
 		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-		# Lidar data status
+        # Lidar data status
 		self.lidar_status = False
 
 		self.Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
         # Set up model
 		self.model = Darknet(self.model_def, img_size = self.img_size).to(self.device)
-    	# Load checkpoint weights
+        # Load checkpoint weights
 		self.model.load_state_dict(torch.load(self.weights_path))
-    	# Eval mode
+        # Eval mode
 		self.model.eval()
 
-		# Load dataset
+        # Load dataset
 #		self.dataset = KittiYOLO2WayDataset(cnf.root_dir, split=self.split, folder=self.folder)
 #		self.data_loader = torch_data.DataLoader(self.dataset, 1, shuffle=False)
 
 	def lidarCb(self, data):
 		np_lidar = self.pointcloud2_to_array(data)
 
-		# Lock
+        # Lock
 		self.lock.acquire()
 
 		front_lidar = bev_utils.removePoints(np_lidar, cnf.boundary)
@@ -98,13 +98,13 @@ class ComplexYOLO:
 #		imgs = Variable(self.back_bevs.type(self.Tensor))
 #		print(imgs)
 		
-		# Subscribe Lidar data
+        # Subscribe Lidar data
 		self.lidar_status = True
 
-		# Unlock
+        # Unlock
 		self.lock.release()
 
-	# Pointcloud to numpy array (x,y,z,intensity)
+    # Pointcloud to numpy array (x,y,z,intensity)
 	def pointcloud2_to_array(self, cloud_msg, squeeze = True):
 		DUMMY_FIELD_PREFIX = '__'
 		dtype_list = ros_numpy.point_cloud2.fields_to_dtype(cloud_msg.fields, cloud_msg.point_step)
@@ -124,7 +124,7 @@ class ComplexYOLO:
 	
 	def detect_and_draw(self, model, bev_maps, Tensor, is_front = True):
 
-		# Numpy to torch
+        # Numpy to torch
 		bev_maps = torch.from_numpy(bev_maps).float()
 
 		imgs = Variable(bev_maps.type(Tensor))
@@ -139,7 +139,7 @@ class ComplexYOLO:
 
 		img_detections.extend(detections)
 
-    	# Only supports single batch
+        # Only supports single batch
 		display_bev = np.zeros((cnf.BEV_WIDTH, cnf.BEV_WIDTH, 3))
     
 		bev_map = bev_maps[0].numpy()
@@ -159,12 +159,12 @@ class ComplexYOLO:
 		for detections in img_detections:
 			if detections is None:
 				continue
-        	# Rescale boxes to original image
+            # Rescale boxes to original image
 			detections = utils.rescale_boxes(detections, self.img_size, display_bev.shape[:2])
 			for x, y, w, l, im, re, conf, cls_conf, cls_pred in detections:
 				
 				yaw = np.arctan2(im, re)
-            	# Draw rotated box
+                # Draw rotated box
 				bev_utils.drawRotatedBox(display_bev, x, y, w, l, yaw, cnf.colors[int(cls_pred)])
 
 		return display_bev, img_detections, Hmap, Imap, Dmap, raw_bev
@@ -177,7 +177,7 @@ class ComplexYOLO:
         # Check status
 		while not self.lidar_status:
 			print("Waiting for {0:s} lidar data...".format(self.lidar_topic))
-			sleep(0.1)
+			sleep(2)
 
 		start_time = time.time()
 		
@@ -192,7 +192,7 @@ class ComplexYOLO:
 			front_bev_result, front_detections, front_Hmap, front_Imap, front_Dmap, front_bev_raw = self.detect_and_draw(self.model, self.front_bevs, self.Tensor, True)
 			back_bev_result, back_detections, back_Hmap, back_Imap, back_Dmap, back_bev_raw = self.detect_and_draw(self.model, self.back_bevs, self.Tensor, False)
 
-			# Unlock
+            # Unlock
 			self.lock.release()
 
 			front_bev_result_eval = front_bev_result
