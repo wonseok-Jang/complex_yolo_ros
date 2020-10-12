@@ -1,12 +1,19 @@
-<launch>
+<?xml version="1.0" encoding="UTF-8"?>
 
+<launch>
+    <!-- Camera topic and weights, config and classes files -->
 	<arg name="lidar_topic" default="/velodyne_points"/>
 	<arg name="model_def" default="$(find complex_yolo_ros)/config/complex_yolov3.cfg"/>
 	<arg name="weights_path" default="$(find complex_yolo_ros)/checkpoints/yolov3_ckpt_epoch-298.pth"/>
 	<arg name="class_path" default="$(find complex_yolo_ros)/data/classes.names"/>
+
+    <!-- Detection confidence -->
 	<arg name="conf_thres" default="0.8"/>
 	<arg name="nms_thres" default="0.4"/>
 	<arg name="save_video" default="False"/>
+
+    <!-- Published topics -->
+    <arg name="detected_objects_topic"      default="/complex_yolo_ros/detected_objects"/>
 
 	<node pkg="complex_yolo_ros" type="complex_yolo_node.py" name="complex_yolo_node" output="screen">
 		<param name="lidar_topic" value="$(arg lidar_topic)" />
@@ -15,6 +22,7 @@
 		<param name="class_path" value="$(arg class_path)" />
 		<param name="nms_thres" value="$(arg nms_thres)" />
 		<param name="conf_thres" value="$(arg conf_thres)" />
+        <param name="detected_objects_topic"    value="$(arg detected_objects_topic)"/>
 	</node>
 
 </launch>

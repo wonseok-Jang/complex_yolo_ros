@@ -22,7 +22,6 @@ import utils.kitti_utils as kitti_utils
 import utils.config as cnf
 from test_detection import predictions_to_kitti_format
 
-
 class ComplexYOLO:
     def __init__(self):
         print("Init()")
@@ -32,8 +31,10 @@ class ComplexYOLO:
         self.lock = threading.Lock()
 
         self.lidar_topic = rospy.get_param("~lidar_topic")	
+        self.detected_objects_topic = rospy.get_param('~detected_objects_topic')
 
         sub_lidar = rospy.Subscriber(self.lidar_topic, PointCloud2, self.lidarCb, queue_size=1)
+        self.pub_dets = rospy.Publisher(self.detected_objects_topic, DetectedObjectArray, queue_size=1)
 
         self.model_def = rospy.get_param("~model_def")
         self.weights_path = rospy.get_param('~weights_path')
@@ -55,6 +56,10 @@ class ComplexYOLO:
 
         # Lidar data status
         self.lidar_status = False
+
+        # Init detection id
+        self.dets_id = 0
+        self.classes_h = [1.6, 1.7, 1.7] # Car, Pedestrian, Cyclist
 
         self.Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
@@ -123,7 +128,6 @@ class ComplexYOLO:
         return cloud_.T
 	
     def detect_and_draw(self, model, bev_maps, Tensor, is_front = True):
-
         # Numpy to torch
         bev_maps = torch.from_numpy(bev_maps).float()
 
@@ -162,10 +166,32 @@ class ComplexYOLO:
             # Rescale boxes to original image
             detections = utils.rescale_boxes(detections, self.img_size, display_bev.shape[:2])
             for x, y, w, l, im, re, conf, cls_conf, cls_pred in detections:
-				
                 yaw = np.arctan2(im, re)
+                h = self.classes_h[int(cls_pred)]
+
                 # Draw rotated box
                 bev_utils.drawRotatedBox(display_bev, x, y, w, l, yaw, cnf.colors[int(cls_pred)])
+
+                detection_msg = DetectedObject()
+                detection_msg.pose.position.x = x
+                detection_msg.pose.position.y = y 
+                detection_msg.pose.position.z = h/2. 
+
+                detection_msg.pose.orientation.x = .0
+                detection_msg.pose.orientation.y = .0
+                detection_msg.pose.orientation.z = yaw 
+                detection_msg.pose.orientation.w = 1. 
+
+                detection_msg.dimensions.x = w
+                detection_msg.dimensions.y = l 
+                detection_msg.dimensions.z = h 
+
+                detection_msg.label = self.classes[int(cls_pred)] 
+                detection_msg.score = conf
+                detection_msg.id = self.dets_id
+
+                self.detection_results.objects.append(detection_msg)
+                self.dets_id += 1
 
         return display_bev, img_detections, Hmap, Imap, Dmap, raw_bev
 
@@ -185,6 +211,10 @@ class ComplexYOLO:
 #           img2d = cv2.imread(img_path)
 
 #           self.input_img = self.imagePreProcessing(img2d)
+
+            # Init msg & id
+            self.detection_results = DetectedObjectArray()
+            self.dets_id = 0
 
             # Lock 
             self.lock.acquire()
@@ -218,6 +248,9 @@ class ComplexYOLO:
 
 #           img2d = cv2.resize(img2d, (self.img_size*2, 375))
 #           vis = np.concatenate((img2d, vis), axis=0)
+            
+            # Publish data
+            self.pub_dets.publish(self.detection_results)            
 
             cv2.imshow('BEV_DETECTION_RESULT', vis)
             if self.save_video:
