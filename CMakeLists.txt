@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   autoware_msgs
+  ros_numpy
 )
 
 ## System dependencies are found with CMake's conventions
@@ -112,7 +113,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES complex_yolo_ros
-  CATKIN_DEPENDS geometry_msgs rospy sensor_msgs std_msgs message_runtime autoware_msgs
+  CATKIN_DEPENDS geometry_msgs rospy sensor_msgs std_msgs message_runtime autoware_msgs ros_numpy 
   DEPENDS system_lib
 )
 
@@ -167,7 +168,7 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
  catkin_install_python(PROGRAMS
-   scripts/complex.py
+   scripts/complex_yolo_node.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
