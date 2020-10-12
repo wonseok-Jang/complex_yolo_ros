@@ -27,3 +27,6 @@ $ roslaunch complex_yolo_ros complex_yolov3.launch
 * `class_path`: Name path
 * `nms_thres`: Non-Maximum-Suppression threshold
 * `conf_thres`: Confidence threshold
+
+### Publisher
+* `/complex_yolo_ros/detected_objects` 
