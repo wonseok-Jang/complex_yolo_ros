@@ -28,7 +28,7 @@ $ roslaunch complex_yolo_ros complex_yolov3.launch
 * `conf_thres`: Confidence threshold
 
 ### Subscribed topics
-* `/velodyne_points` (You can set topic name in `launch/complex_yolov3.launch`)
+* `/velodyne_points`: sensor_msgs::PointCloud2 (You can set topic name in `launch/complex_yolov3.launch`)
 
 ### Published topics
 * `/complex_yolo_ros/detected_objects`: complex_yolo_ros::DetectedObjectArray
