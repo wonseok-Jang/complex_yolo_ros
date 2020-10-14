@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-    <!-- Camera topic and weights, config and classes files -->
+    <!-- Lidar topic and weights, config and classes files -->
 	<arg name="lidar_topic" default="/velodyne_points"/>
 	<arg name="model_def" default="$(find complex_yolo_ros)/config/complex_yolov3.cfg"/>
 	<arg name="weights_path" default="$(find complex_yolo_ros)/checkpoints/yolov3_ckpt_epoch-298.pth"/>
