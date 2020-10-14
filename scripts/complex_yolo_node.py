@@ -88,6 +88,11 @@ class ComplexYOLO:
 
         self.Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
+        # CUDA stream
+        self.stream = []
+        for i in range (2):
+            self.stream.append(torch.cuda.Stream())
+
         # Set up model
         self.model_f = Darknet(self.model_def, img_size = self.img_size).to(self.device)
         self.model_b = Darknet(self.model_def, img_size = self.img_size).to(self.device)
@@ -148,6 +153,7 @@ class ComplexYOLO:
 
         convert_end = time.monotonic()
         
+        # Measurement
 #        if self.count >= self.num_drop:
 #            self.d_conv[self.count-self.num_drop] = (convert_end - convert_start)*1000.
 #            print("Converting: {0:0.2f}".format(self.d_conv[self.count-self.num_drop]))
@@ -218,6 +224,7 @@ class ComplexYOLO:
         # Publish data
         self.pub_dets.publish(self.detection_results)            
 
+        # Measurement
 #        if self.count > self.num_drop:
 #            self.e2e_delay[self.count-self.num_drop] = time.monotonic()*1000. - self.data_timestamp[post_processing_index]
 #            print("Delay: {0:0.2f}".format(self.e2e_delay[self.count-self.num_drop]))
@@ -238,12 +245,12 @@ class ComplexYOLO:
 
         processing_end = time.monotonic()
         
+        # Measurement
 #        if self.count > self.num_drop:
 #            self.d_proc[self.count-self.num_drop] = (processing_end - processing_start)*1000.
 #            print("Post processing: {0:0.2f}".format(self.d_proc[self.count-self.num_drop]))
 
-
-    def inference(self, model, bev_maps, Tensor, is_front = True):
+    def inference(self, model, bev_maps, Tensor, is_front = True, stream_index = 0):
         infer_start = time.monotonic()
         # Numpy to torch
         bev_maps = torch.from_numpy(bev_maps).float()
@@ -254,7 +261,8 @@ class ComplexYOLO:
             bev_maps = torch.flip(bev_maps, [2, 3])
 
         img_detections = []
-        with torch.no_grad():
+
+        with torch.cuda.stream(self.stream[stream_index]):
             detections = model(imgs)
             detections = utils.non_max_suppression_rotated_bbox(detections, self.conf_thres, self.nms_thres)
 
@@ -288,11 +296,10 @@ class ComplexYOLO:
 
         infer_end = time.monotonic() 
         
+        # Measurement
 #        if self.count > self.num_drop:
 #            self.d_infer[self.count-self.num_drop] = (infer_end - infer_start) * 1000.
 #            print("Inference : {0:0.2f}".format(self.d_infer[self.count-self.num_drop]))
-
-#        return display_bev, img_detections, Hmap, Imap, Dmap, raw_bev
 
     def run(self):
         print("Run detector()")
@@ -313,8 +320,8 @@ class ComplexYOLO:
         # Unlock
         self.lock.release()
 
-        self.inference(self.model_f, self.front_bevs, self.Tensor, True)
-        self.inference(self.model_b, self.back_bevs, self.Tensor, False)
+        self.inference(self.model_f, self.front_bevs, self.Tensor, True, 0)
+        self.inference(self.model_b, self.back_bevs, self.Tensor, False, 1)
        
         local_front_bev_result = self.front_bev_result
         local_back_bev_result = self.back_bev_result
@@ -341,8 +348,8 @@ class ComplexYOLO:
             self.detection_results = DetectedObjectArray()
             self.dets_id = 0
 
-            f_infer_thread = thread.Thread(target = self.inference, args=(self.model_f, self.front_bevs, self.Tensor, True))   # Front bev inference thread
-            b_infer_thread = thread.Thread(target = self.inference, args=(self.model_b, self.back_bevs, self.Tensor, False))   # Back bev inference thread
+            f_infer_thread = thread.Thread(target = self.inference, args=(self.model_f, self.front_bevs, self.Tensor, True, 0))   # Front bev inference thread
+            b_infer_thread = thread.Thread(target = self.inference, args=(self.model_b, self.back_bevs, self.Tensor, False, 1))   # Back bev inference thread
             # Post processing (publish msg, merge image)
             post_processing_thread = thread.Thread(target = self.post_processing, args=(local_front_bev_result, local_back_bev_result, local_front_bev_raw, local_back_bev_raw, local_front_dets, local_back_dets))
 
@@ -385,6 +392,7 @@ class ComplexYOLO:
             print(f"FPS: {1.0/(end_time-start_time):.2f}")
             print(f"Cycle time: {(end_time-start_time) * 1000.:.2f}")
 
+            # Measurement
 #            if self.count >= self.num_drop:
 #                self.cycle_time[self.count-self.num_drop] = (end_time-start_time) * 1000.
 
@@ -400,8 +408,9 @@ class ComplexYOLO:
 
             self.timestamp_index += 1
             self.count += 1
-#            print("Count: {0:d}".format(self.count))
 
+            # Measurement
+#            print("Count: {0:d}".format(self.count))
 #            if self.count >= (self.max_iter+self.num_drop):
 #                print("===========================")
 #                print("Converting delay (ms): {0:0.2f}".format(np.mean(self.d_conv)))
