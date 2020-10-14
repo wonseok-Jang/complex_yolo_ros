@@ -24,7 +24,7 @@ from test_detection import predictions_to_kitti_format
 
 class ComplexYOLO:
     def __init__(self):
-        print("Init()")
+#        print("Init()")
         rospy.init_node('complex_yolo_node', anonymous = True)
 
         self.model_def = rospy.get_param("~model_def")
@@ -63,7 +63,7 @@ class ComplexYOLO:
         self.np_lidar = 0
 
         # Measurement
-        self.max_iter = 150
+        self.max_iter = 140
         self.num_drop = 4
         self.count = 0 # loop counter
         self.d_conv = np.zeros(self.max_iter)
@@ -115,7 +115,7 @@ class ComplexYOLO:
 
     def lidar_to_bev(self, lidar_data, lidar_time):
         convert_start = time.monotonic()
-        convert_index = self.timestamp_index % 3
+        convert_index = self.timestamp_index
 
         self.data_timestamp[convert_index] = lidar_time
 
@@ -148,9 +148,9 @@ class ComplexYOLO:
 
         convert_end = time.monotonic()
         
-#        if self.count >= self.num_drop:
-#            self.d_conv[self.count-self.num_drop] = (convert_end - convert_start)*1000.
-#            print("Converting: {0:0.2f}".format(self.d_conv[self.count-self.num_drop]))
+        if self.count >= self.num_drop:
+            self.d_conv[self.count-self.num_drop] = (convert_end - convert_start)*1000.
+            print("Converting: {0:0.2f}".format(self.d_conv[self.count-self.num_drop]))
 
         return front_bev, back_bev
 
@@ -209,7 +209,7 @@ class ComplexYOLO:
 
     def post_processing(self, f_bev_result, b_bev_result, f_bev_raw, b_bev_raw, f_detections, b_detections):
         processing_start = time.monotonic()
-        post_processing_index = (self.timestamp_index + 1) % 3
+        post_processing_index = self.timestamp_index
 
         # Make ros msg
         self.make_publish_msg(f_detections, f_bev_result)
@@ -218,9 +218,9 @@ class ComplexYOLO:
         # Publish data
         self.pub_dets.publish(self.detection_results)            
 
-#        if self.count > self.num_drop:
-#            self.e2e_delay[self.count-self.num_drop] = time.monotonic()*1000. - self.data_timestamp[post_processing_index]
-#            print("Delay: {0:0.2f}".format(self.e2e_delay[self.count-self.num_drop]))
+        if self.count > self.num_drop:
+            self.e2e_delay[self.count-self.num_drop] = time.monotonic()*1000. - self.data_timestamp[post_processing_index]
+            print("Delay: {0:0.2f}".format(self.e2e_delay[self.count-self.num_drop]))
 
         # Merge front bev with back bev
         f_bev_result_eval = f_bev_result
@@ -238,9 +238,9 @@ class ComplexYOLO:
 
         processing_end = time.monotonic()
         
-#        if self.count > self.num_drop:
-#            self.d_proc[self.count-self.num_drop] = (processing_end - processing_start)*1000.
-#            print("Post processing: {0:0.2f}".format(self.d_proc[self.count-self.num_drop]))
+        if self.count > self.num_drop:
+            self.d_proc[self.count-self.num_drop] = (processing_end - processing_start)*1000.
+            print("Post processing: {0:0.2f}".format(self.d_proc[self.count-self.num_drop]))
 
 
     def inference(self, model, bev_maps, Tensor, is_front = True):
@@ -288,9 +288,9 @@ class ComplexYOLO:
 
         infer_end = time.monotonic() 
         
-#        if self.count > self.num_drop:
-#            self.d_infer[self.count-self.num_drop] = (infer_end - infer_start) * 1000.
-#            print("Inference : {0:0.2f}".format(self.d_infer[self.count-self.num_drop]))
+        if self.count > self.num_drop:
+            self.d_infer[self.count-self.num_drop] = (infer_end - infer_start) * 1000.
+            print("Inference : {0:0.2f}".format(self.d_infer[self.count-self.num_drop]))
 
 #        return display_bev, img_detections, Hmap, Imap, Dmap, raw_bev
 
@@ -305,34 +305,6 @@ class ComplexYOLO:
             print("Waiting for {0:s} lidar data...".format(self.lidar_topic))
             sleep(2)
 
-        # Lock
-        self.lock.acquire()
-
-        self.front_bevs, self.back_bevs = self.lidar_to_bev(self.np_lidar, self.recv_timestamp)
-
-        # Unlock
-        self.lock.release()
-
-        self.inference(self.model_f, self.front_bevs, self.Tensor, True)
-        self.inference(self.model_b, self.back_bevs, self.Tensor, False)
-       
-        local_front_bev_result = self.front_bev_result
-        local_back_bev_result = self.back_bev_result
-
-        local_front_bev_raw = self.front_bev_raw
-        local_back_bev_raw = self.back_bev_raw
-
-        local_front_bev_result_eval = local_front_bev_result
-        local_back_bev_result_eval = local_back_bev_result
-
-        local_front_dets = self.front_dets
-        local_back_dets = self.back_dets
-
-        # Lock
-        self.lock.acquire()
-
-        # Unlock
-        self.lock.release()
         start_time = time.time()
 
         while not rospy.is_shutdown():
@@ -341,52 +313,38 @@ class ComplexYOLO:
             self.detection_results = DetectedObjectArray()
             self.dets_id = 0
 
-            f_infer_thread = thread.Thread(target = self.inference, args=(self.model_f, self.front_bevs, self.Tensor, True))   # Front bev inference thread
-            b_infer_thread = thread.Thread(target = self.inference, args=(self.model_b, self.back_bevs, self.Tensor, False))   # Back bev inference thread
+#            f_infer_thread = thread.Thread(target = self.inference, args=(self.model_f, self.front_bevs, self.Tensor, True))   # Front bev inference thread
+#            b_infer_thread = thread.Thread(target = self.inference, args=(self.model_b, self.back_bevs, self.Tensor, False))   # Back bev inference thread
             # Post processing (publish msg, merge image)
-            post_processing_thread = thread.Thread(target = self.post_processing, args=(local_front_bev_result, local_back_bev_result, local_front_bev_raw, local_back_bev_raw, local_front_dets, local_back_dets))
+#            post_processing_thread = thread.Thread(target = self.post_processing, args=(local_front_bev_result, local_back_bev_result, local_front_bev_raw, local_back_bev_raw, local_front_dets, local_back_dets))
 
-            f_infer_thread.start()
-            b_infer_thread.start()
-            post_processing_thread.start()
+#            f_infer_thread.start()
+#            b_infer_thread.start()
+#            post_processing_thread.start()
 
             ### Main thread
             # Lock
             self.lock.acquire()
 
             tmp_front_bevs, tmp_back_bevs = self.lidar_to_bev(self.np_lidar, self.recv_timestamp)
-
-            # Unlock
-            self.lock.release()
-            
-            ### Main thread end
-
-            f_infer_thread.join()
-            b_infer_thread.join()
-            post_processing_thread.join()
-
-            # Swap data
             self.front_bevs = tmp_front_bevs
             self.back_bevs = tmp_back_bevs
+           
+            # Unlock
+            self.lock.release()
 
-            local_front_bev_result = self.front_bev_result
-            local_back_bev_result = self.back_bev_result
-
-            local_front_bev_raw = self.front_bev_raw
-            local_back_bev_raw = self.back_bev_raw
-
-            local_front_bev_result_eval = local_front_bev_result
-            local_back_bev_result_eval = local_back_bev_result
-
-            local_front_dets = self.front_dets
-            local_back_dets = self.back_dets
+            self.inference(self.model_f, self.front_bevs, self.Tensor, True)
+            self.inference(self.model_b, self.back_bevs, self.Tensor, False)
+            
+            self.post_processing(self.front_bev_result, self.back_bev_result, self.front_bev_raw, self.back_bev_raw, self.front_dets, self.back_dets)
+            ### Main thread end
 
             end_time = time.time()
             print(f"FPS: {1.0/(end_time-start_time):.2f}")
             print(f"Cycle time: {(end_time-start_time) * 1000.:.2f}")
 
-#            if self.count >= self.num_drop:
-#                self.cycle_time[self.count-self.num_drop] = (end_time-start_time) * 1000.
+            if self.count >= self.num_drop:
+                self.cycle_time[self.count-self.num_drop] = (end_time-start_time) * 1000.
 
             start_time = end_time
 
@@ -398,18 +356,17 @@ class ComplexYOLO:
             if cv2.waitKey(1) & 0xFF == 27:
                 break
 
-            self.timestamp_index += 1
             self.count += 1
-#            print("Count: {0:d}".format(self.count))
+            print("Count: {0:d}".format(self.count))
 
-#            if self.count >= (self.max_iter+self.num_drop):
-#                print("===========================")
-#                print("Converting delay (ms): {0:0.2f}".format(np.mean(self.d_conv)))
-#                print("Inference delay (ms): {0:0.2f}".format(np.mean(self.d_infer)))
-#                print("Post-processing delay (ms): {0:0.2f}".format(np.mean(self.d_proc)))
-#                print("End-to-end delay (ms): {0:0.2f}".format(np.mean(self.e2e_delay)))
-#                print("Cycle time (ms): {0:0.2f}".format(np.mean(self.cycle_time)))
-#                break
+            if self.count >= (self.max_iter+self.num_drop):
+                print("===========================")
+                print("Converting delay (ms): {0:0.2f}".format(np.mean(self.d_conv)))
+                print("Inference delay (ms): {0:0.2f}".format(np.mean(self.d_infer)))
+                print("Post-processing delay (ms): {0:0.2f}".format(np.mean(self.d_proc)))
+                print("End-to-end delay (ms): {0:0.2f}".format(np.mean(self.e2e_delay)))
+                print("Cycle time (ms): {0:0.2f}".format(np.mean(self.cycle_time)))
+                break
 
         if self.save_video:
             out.release()
