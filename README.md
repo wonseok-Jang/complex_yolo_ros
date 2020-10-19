@@ -10,6 +10,7 @@
 * PyTorch 1.6.0
 * torchvision 0.6.0
 * ROS melodic
+* 
 
 ### Installation
 
