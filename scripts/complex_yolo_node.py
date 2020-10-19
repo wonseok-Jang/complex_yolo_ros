@@ -54,7 +54,6 @@ class ComplexYOLO:
         sub_lidar = rospy.Subscriber(self.lidar_topic, PointCloud2, self.lidarCb, queue_size=1)
         self.pub_dets = rospy.Publisher(self.detected_objects_topic, DetectedObjectArray, queue_size=1)
 
-
         self.classes = utils.load_classes(self.class_path)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -265,6 +264,9 @@ class ComplexYOLO:
         with torch.cuda.stream(self.stream[stream_index]):
             detections = model(imgs)
             detections = utils.non_max_suppression_rotated_bbox(detections, self.conf_thres, self.nms_thres)
+
+        # Wait for computation
+        torch.cuda.synchronize()
 
         img_detections.extend(detections)
 
