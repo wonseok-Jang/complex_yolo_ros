@@ -1,8 +1,6 @@
-numpy
-torch=1.1
-torchvision
-tensorflow
-terminaltables
-tqdm
-opencv-python
-shapely
+numpy==1.16.1
+torch==1.6.0
+torchvision==0.6.0a0+b68adcf
+tensorflow==2.3.0+nv20.9
+tqdm==4.50.1
+ros-numpy==0.0.3
